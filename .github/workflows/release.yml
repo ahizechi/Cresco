@@ -1,0 +1,56 @@
+name: Signed Windows release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d
+        with:
+          toolchain: stable
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run test:privacy
+      - run: npm run test:ui
+      - run: npm run build
+      - run: npm run test:csp
+      - run: npm run app:test
+      - run: npm run app:check
+      - name: Check tag and signing secrets
+        shell: pwsh
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -ne "v$version") { throw 'Tag and package version differ.' }
+          if (-not $env:SIGNING_KEY -or -not $env:SIGNING_PASSWORD) { throw 'Updater signing secrets are missing.' }
+      - name: Build signed installer and verify release set
+        run: npm run release:build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - name: Upload complete draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = Join-Path $env:RUNNER_TEMP 'cresco-release-notes.txt'
+          node -e "const fs=require('fs');const m=JSON.parse(fs.readFileSync('src-tauri/target/release/bundle/nsis/latest.json'));fs.writeFileSync(process.argv[1],m.notes)" $notes
+          $assets = @(Get-ChildItem src-tauri/target/release/bundle/nsis -File | Where-Object { $_.Name -match '\.(exe|sig)$' -or $_.Name -in @('latest.json','SHA256SUMS.txt') } | ForEach-Object FullName)
+          if ($assets.Count -ne 4) { throw 'Expected one complete four-asset release set.' }
+          gh release create $env:GITHUB_REF_NAME --draft --verify-tag --title "Cresco $env:GITHUB_REF_NAME" --notes-file $notes @assets
+          if ($LASTEXITCODE -ne 0) { throw 'Draft upload failed.' }

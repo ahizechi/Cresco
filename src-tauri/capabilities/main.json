@@ -1,0 +1,26 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Local habits, finance, routines and signed updates only.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "allow-finance-load",
+    "allow-finance-save",
+    "allow-finance-recover",
+    "allow-finance-export",
+    "allow-habits-load",
+    "allow-habits-save",
+    "allow-habits-export",
+    "allow-routines-load",
+    "allow-routines-save",
+    "allow-routines-export",
+    "allow-routines-restore",
+    "allow-prepare-update",
+    "allow-cancel-update",
+    "updater:allow-check",
+    "updater:allow-download-and-install",
+    "core:resources:allow-close"
+  ]
+}

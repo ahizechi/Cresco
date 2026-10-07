@@ -1,0 +1,46 @@
+{
+  "name": "cresco-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build",
+    "format:check": "prettier --check src tests tools index.html package.json tsconfig.json vite.config.ts playwright.config.ts src-tauri/tauri.conf.json",
+    "test:ui": "playwright test",
+    "test:privacy": "node --test tests/privacy.test.cjs tests/signature.test.cjs",
+    "app:build": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 build",
+    "app:test": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 test",
+    "app:check": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 check",
+    "app:lock": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 lock",
+    "release:build": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build-release.ps1",
+    "test:csp": "powershell.exe -NoProfile -Command \"$env:CRESCO_CSP_TEST='1'; npm.cmd run test:ui\""
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.1",
+    "@tauri-apps/plugin-updater": "2.13.2",
+    "lucide-react": "1.47.0",
+    "papaparse": "5.7.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@tauri-apps/cli": "2.12.1",
+    "@types/node": "26.5.1",
+    "@types/papaparse": "5.5.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "prettier": "3.9.6",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite": "8.3.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "profile": {
+    "name": "",
+    "tz": "Europe/London",
+    "weekStart": "Mon"
+  },
+  "txns": [],
+  "accounts": [],
+  "budgets": [],
+  "schedules": [],
+  "goals": [],
+  "imports": [],
+  "banks": [],
+  "cashflow": {
+    "labels": [],
+    "income": [],
+    "spend": []
+  },
+  "habits": [],
+  "hlog": {},
+  "hskip": {},
+  "hnote": {},
+  "routines": [],
+  "settings": {
+    "motion": "system",
+    "sample": false
+  }
+}

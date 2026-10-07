@@ -1,0 +1,1 @@
+Cresco synthetic updater verification fixture. No executable content.

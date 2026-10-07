@@ -1,0 +1,95 @@
+{
+  "valid": [
+    {
+      "schema": 1,
+      "revision": 0,
+      "timezone": "Europe/London",
+      "habits": [
+        {
+          "id": "check",
+          "name": "Synthetic check",
+          "description": "",
+          "category": "Daily",
+          "period": "Anytime",
+          "color": "blue",
+          "rules": [
+            {
+              "from": "2026-09-01",
+              "days": [0, 1, 2, 3, 4, 5, 6],
+              "kind": "check",
+              "target": 1,
+              "unit": "",
+              "enabled": true
+            }
+          ],
+          "pauses": []
+        }
+      ],
+      "entries": [
+        {
+          "habitId": "check",
+          "date": "2026-09-02",
+          "value": 1,
+          "skipped": false,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "schema": 1,
+      "revision": 0,
+      "timezone": "Europe/London",
+      "habits": [
+        {
+          "id": "count",
+          "name": "Synthetic count",
+          "description": "",
+          "category": "Daily",
+          "period": "Anytime",
+          "color": "amber",
+          "rules": [
+            {
+              "from": "2026-09-01",
+              "days": [0, 2, 4],
+              "kind": "count",
+              "target": 5,
+              "unit": "",
+              "enabled": true
+            }
+          ],
+          "pauses": []
+        }
+      ],
+      "entries": []
+    }
+  ],
+  "invalid": [
+    {
+      "schema": 1,
+      "revision": 0,
+      "timezone": "Europe/London",
+      "habits": [
+        {
+          "id": "bad",
+          "name": "Synthetic invalid",
+          "description": "",
+          "category": "Daily",
+          "period": "Anytime",
+          "color": "blue",
+          "rules": [
+            {
+              "from": "2026-09-01",
+              "days": [0, 0],
+              "kind": "check",
+              "target": 1,
+              "unit": "",
+              "enabled": true
+            }
+          ],
+          "pauses": []
+        }
+      ],
+      "entries": []
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+.cresco-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 21px;
+  font-weight: 650;
+  padding: 28px 20px 24px;
+}
+.cresco-app .sidebar {
+  display: flex;
+  flex-direction: column;
+}
+.cresco-app nav {
+  padding: 8px 12px;
+  display: grid;
+  gap: 6px;
+}
+.cresco-app .nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--fg-muted);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.cresco-app .nav-item.active {
+  background: var(--muted);
+  color: var(--fg);
+}
+.cresco-local {
+  margin-top: auto;
+  padding: 24px;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+.cresco-app .topbar {
+  justify-content: space-between;
+  padding: 0 28px;
+}
+.cresco-escape {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: transparent;
+  border: 0;
+}
+.settings-stack {
+  display: grid;
+  gap: 20px;
+  max-width: 860px;
+}
+.backup-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 0;
+  flex-wrap: wrap;
+}
+.cresco-update {
+  display: grid;
+  gap: 12px;
+}
+.cresco-app .sidebar {
+  width: 220px;
+}
+.cresco-app .main-wrap {
+  margin-left: 0;
+}
+@media (max-width: 760px) {
+  .cresco-app {
+    display: block;
+  }
+  .cresco-app .sidebar {
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    height: 68px;
+    z-index: 30;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .cresco-brand,
+  .cresco-local {
+    display: none;
+  }
+  .cresco-app nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px;
+  }
+  .cresco-app .nav-item {
+    justify-content: center;
+    padding: 12px;
+  }
+  .cresco-app .main-wrap {
+    margin-left: 0;
+    padding-bottom: 72px;
+  }
+  .cresco-app .topbar .meta {
+    display: none;
+  }
+  .cresco-app .page {
+    padding: 18px;
+  }
+  .cresco-app .sidebar nav {
+    height: 100%;
+  }
+}
+.cresco-app {
+  --sbw: 220px;
+}
+.cresco-app .sidebar {
+  width: auto;
+  padding: 0;
+}
+.cresco-app .nav-item {
+  height: auto;
+  color: var(--fg-2);
+}
+.cresco-app .nav-item.active {
+  color: var(--fg);
+}
+.cresco-app .sidebar .nav-item:hover {
+  background: var(--hover);
+}
