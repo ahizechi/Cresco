@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- First public installer release.
+- Pin portable source line endings so fresh Windows checkouts pass the same checks as local builds.
+
 ## 0.1.0
 
 - Initial Windows release with daily habits, measured check-ins, history, ongoing timers and streaks.
