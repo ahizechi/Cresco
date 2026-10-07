@@ -15,8 +15,11 @@ function create(directory) {
     cargo !== pkg.version
   )
     throw Error("Package, native and installer versions must match.");
-  const exes = fs.readdirSync(directory).filter((s) => s.endsWith(".exe"));
-  if (exes.length !== 1) throw Error("Expected exactly one Windows installer.");
+  const exes = fs
+    .readdirSync(directory)
+    .filter((s) => s === "Cresco_" + pkg.version + "_x64-setup.exe");
+  if (exes.length !== 1)
+    throw Error("Expected exactly one installer for the current version.");
   const file = exes[0];
   if (
     !file.startsWith("Cresco_" + pkg.version + "_") ||
