@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Give the project page a clearer introduction to habits, money tracking, privacy and getting started.
+- Include the latest interface stylesheet cleanup.
+- Keep the verified Windows installer and update process from 0.1.3.
+
 ## 0.1.3
 
 - Include backup restores in update save draining and block restores during installation.
