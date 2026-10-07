@@ -4085,24 +4085,6 @@ table.t {
 .settings-page .banner {
   margin-top: 12px;
 }
-.assistant-services {
-  display: grid;
-  gap: 16px;
-  align-content: start;
-}
-.assistant-service-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.assistant-service-row .mono {
-  margin-right: auto;
-  color: var(--fg-muted);
-}
-.assistant-service-note {
-  margin-top: 12px;
-}
 @media (max-width: 750px) {
   .settings-page .settings-connections .row {
     grid-template-columns: 32px minmax(0, 1fr) 105px;
