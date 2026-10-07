@@ -46,4 +46,4 @@ See [the release guide](docs/RELEASES.md). Builds are signed with a dedicated up
 
 ## Licence
 
-Publicly viewable source. All rights reserved until a reuse licence is selected. The desktop app is provided for personal use. Geist fonts retain their bundled SIL Open Font License.
+MIT licensed; see [LICENSE](LICENSE). Geist fonts and other dependencies retain their licences listed in THIRD-PARTY-NOTICES.txt.
