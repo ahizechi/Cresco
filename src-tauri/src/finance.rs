@@ -20,6 +20,7 @@ impl Store {
         }
     }
     pub fn load(&self) -> Result<Value, String> {
+        let _process = crate::process_lock::ProcessLock::acquire(&self.directory, "finance")?;
         let _guard = self
             .lock
             .lock()
@@ -42,6 +43,7 @@ impl Store {
     }
     pub fn save(&self, mut value: Value) -> Result<Value, String> {
         validate(&value)?;
+        let _process = crate::process_lock::ProcessLock::acquire(&self.directory, "finance")?;
         let _guard = self
             .lock
             .lock()
@@ -73,6 +75,7 @@ impl Store {
     }
     pub fn recover(&self, mut value: Value) -> Result<Value, String> {
         validate(&value)?;
+        let _process = crate::process_lock::ProcessLock::acquire(&self.directory, "finance")?;
         let _guard = self
             .lock
             .lock()

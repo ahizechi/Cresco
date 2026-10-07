@@ -77,7 +77,13 @@ export function usePersistedSection<T extends object>(
       if (!loaded.current || writing.current || queue.current.length) return;
       void sectionStateLoad(section)
         .then((saved) => {
-          if (!active || saved.revision <= revision.current) return;
+          if (
+            !active ||
+            writing.current ||
+            queue.current.length ||
+            saved.revision <= revision.current
+          )
+            return;
           current.current = saved.data === null ? initial : revive(saved.data);
           committed.current = current.current;
           revision.current = saved.revision;

@@ -6,7 +6,7 @@ import pkg from "../../../package.json";
 export function UpdatePanel() {
   const update = useUpdates();
   return (
-    <Panel title={"App updates ? " + pkg.version}>
+    <Panel title={"App updates · " + pkg.version}>
       <div className="cresco-update">
         <p role="status" aria-live="polite">
           {desktop
@@ -23,7 +23,7 @@ export function UpdatePanel() {
             <span>
               {update.progress
                 ? update.progress + "%"
-                : "Downloading and verifying signature?"}
+                : "Downloading and verifying signature…"}
             </span>
           </>
         )}
@@ -36,7 +36,7 @@ export function UpdatePanel() {
             }
             onClick={() => void checkNow()}
           >
-            {update.state === "checking" ? "Checking?" : "Check for updates"}
+            {update.state === "checking" ? "Checking…" : "Check for updates"}
           </Btn>{" "}
           {update.state === "available" && (
             <Btn v="primary" onClick={() => void installUpdate()}>

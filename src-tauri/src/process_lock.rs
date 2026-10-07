@@ -1,7 +1,7 @@
 use std::path::Path;
 
-/// Serialises encrypted-store operations across the window and the headless
-/// companion. The name is derived from the data directory, so test fixtures
+/// Serialises encrypted-store operations across application processes.
+/// The name is derived from the data directory, so test fixtures
 /// remain isolated from the installed app.
 #[cfg(windows)]
 pub struct ProcessLock(*mut std::ffi::c_void);

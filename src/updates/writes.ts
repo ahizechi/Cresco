@@ -11,11 +11,28 @@ export function trackWrite(promise: Promise<boolean>) {
 }
 export async function pauseAndDrain() {
   paused = true;
-  const results = await Promise.all([...pending]);
-  if (results.some((ok) => !ok)) {
+  try {
+    const results = await Promise.all([...pending]);
+    if (results.some((ok) => !ok))
+      throw Error("A save failed. Resolve it before updating.");
+  } catch (error) {
     paused = false;
-    throw Error("A save failed. Resolve it before updating.");
+    throw error;
   }
+}
+export function trackedMutation<T>(operation: () => Promise<T>): Promise<T> {
+  if (paused)
+    return Promise.reject(
+      Error("An update is being installed. Editing is paused."),
+    );
+  const result = Promise.resolve().then(operation);
+  trackWrite(
+    result.then(
+      () => true,
+      () => false,
+    ),
+  );
+  return result;
 }
 export function resumeEditing() {
   paused = false;

@@ -25,7 +25,9 @@ pub fn validate(v: &Value) -> Result<(), String> {
             .is_none()
             || !matches!(r["kind"].as_str(), Some("daily" | "continuous"))
             || !matches!(r["status"].as_str(), Some("running" | "paused" | "stopped"))
-            || r["elapsedMs"].as_u64().is_none()
+            || !r["elapsedMs"]
+                .as_u64()
+                .is_some_and(|n| n <= 9_007_199_254_740_991)
         {
             return Err("Invalid routine fields.".into());
         }
@@ -69,12 +71,22 @@ pub fn validate(v: &Value) -> Result<(), String> {
                 return Err("Invalid check date.".into());
             }
         }
+        if checks
+            .iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+            != checks.len()
+        {
+            return Err("Duplicate routine check date.".into());
+        }
         let history = r["history"]
             .as_array()
             .filter(|h| h.len() <= 100)
             .ok_or("Invalid routine history.")?;
         for h in history {
-            if h["elapsedMs"].as_u64().is_none()
+            if !h["elapsedMs"]
+                .as_u64()
+                .is_some_and(|n| n <= 9_007_199_254_740_991)
                 || h["endedAt"]
                     .as_str()
                     .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
@@ -115,18 +127,23 @@ impl Store {
         }
         let v: Value = serde_json::from_slice(&read_private(&p)?)
             .map_err(|_| "Routines are unreadable. Restore a backup.")?;
-        if v["revision"].as_u64().is_none() {
+        if !v["revision"]
+            .as_u64()
+            .is_some_and(|n| n <= 9_007_199_254_740_991)
+        {
             return Err("Invalid routines revision.".into());
         }
         validate(&v["data"])?;
         Ok(v)
     }
     pub fn load(&self) -> Result<Value, String> {
+        let _process = crate::process_lock::ProcessLock::acquire(&self.directory, "routines")?;
         let _guard = self.lock.lock().map_err(|_| "Routines are busy.")?;
         self.read()
     }
     pub fn save(&self, data: Value, revision: u64, recovery: bool) -> Result<u64, String> {
         validate(&data)?;
+        let _process = crate::process_lock::ProcessLock::acquire(&self.directory, "routines")?;
         let _guard = self.lock.lock().map_err(|_| "Routines are busy.")?;
         let old = self.read();
         let next = if recovery {
@@ -139,7 +156,10 @@ impl Store {
             if old["revision"] != revision {
                 return Err("Routines changed in another process. Reload before saving.".into());
             }
-            revision.checked_add(1).ok_or("Revision overflow.")?
+            revision
+                .checked_add(1)
+                .filter(|n| *n <= 9_007_199_254_740_991)
+                .ok_or("Revision overflow.")?
         };
         let target = self.directory.join("routines.dpapi");
         if target.exists() {
@@ -179,6 +199,18 @@ mod tests {
     #[test]
     fn rejects_invalid_routine() {
         assert!(validate(&json!({"routines":[{"title":"private"}]})).is_err());
+    }
+    #[test]
+    fn rejects_duplicate_dates_and_unsafe_elapsed_values() {
+        let row = json!({"id":"synthetic","title":"Synthetic routine","kind":"continuous","createdAt":"2026-10-07T12:00:00Z","status":"paused","startedAt":null,"elapsedMs":1000,"checks":[],"history":[]});
+        assert!(validate(&json!({"routines":[row.clone()]})).is_ok());
+        assert!(validate(&json!({"routines":[row.clone(),row.clone()]})).is_err());
+        let mut invalid = row.clone();
+        invalid["checks"] = json!(["2026-10-07", "2026-10-07"]);
+        assert!(validate(&json!({"routines":[invalid]})).is_err());
+        let mut invalid = row;
+        invalid["elapsedMs"] = json!(9_007_199_254_740_992u64);
+        assert!(validate(&json!({"routines":[invalid]})).is_err());
     }
     #[test]
     fn preserves_unreadable_and_previous() {

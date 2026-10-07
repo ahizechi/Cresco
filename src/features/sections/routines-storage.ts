@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { desktop, sectionStateLoad } from "../../platform";
 import { validateRoutines } from "./routines";
+import { trackedMutation } from "../../updates/writes";
 export function routineBackup(value: unknown) {
   if (!value || typeof value !== "object")
     throw Error("Invalid routines backup.");
@@ -32,6 +33,9 @@ export async function exportRoutines() {
   return true;
 }
 export async function restoreRoutines(value: unknown) {
+  return trackedMutation(() => restore(value));
+}
+async function restore(value: unknown) {
   const backup = routineBackup(value);
   if (desktop) {
     let recovery = false;

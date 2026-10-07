@@ -113,7 +113,7 @@ export default function App() {
               {status && !status.ready ? (
                 <div className="view">
                   <h1>
-                    {status.error ? "Your data needs recovery" : "Loading?"}
+                    {status.error ? "Your data needs recovery" : "Loading…"}
                   </h1>
                   <p role={status.error ? "alert" : "status"}>
                     {status.error || "Reading your local records."}

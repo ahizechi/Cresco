@@ -52,8 +52,17 @@ jobs:
           node -e "const fs=require('fs');const m=JSON.parse(fs.readFileSync('src-tauri/target/release/bundle/nsis/latest.json'));fs.writeFileSync(process.argv[1],m.notes)" $notes
           $assets = @(Get-ChildItem src-tauri/target/release/bundle/nsis -File | Where-Object { $_.Name -match '\.(exe|sig)$' -or $_.Name -in @('latest.json','SHA256SUMS.txt') } | ForEach-Object FullName)
           if ($assets.Count -ne 4) { throw 'Expected one complete four-asset release set.' }
-          gh release create $env:GITHUB_REF_NAME --draft --verify-tag --title "Cresco $env:GITHUB_REF_NAME" --notes-file $notes @assets
-          if ($LASTEXITCODE -ne 0) { throw 'Draft upload failed.' }
+          $existing = gh release view $env:GITHUB_REF_NAME --json isDraft --jq '.isDraft' 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if ($existing -ne 'true') { throw 'Published releases are immutable; use a higher version.' }
+            gh release upload $env:GITHUB_REF_NAME --clobber @assets
+            if ($LASTEXITCODE -ne 0) { throw 'Draft retry upload failed.' }
+            gh release edit $env:GITHUB_REF_NAME --notes-file $notes
+            if ($LASTEXITCODE -ne 0) { throw 'Draft notes update failed.' }
+          } else {
+            gh release create $env:GITHUB_REF_NAME --draft --verify-tag --title "Cresco $env:GITHUB_REF_NAME" --notes-file $notes @assets
+            if ($LASTEXITCODE -ne 0) { throw 'Draft upload failed.' }
+          }
       - name: Verify uploaded assets and publish stable release
         shell: pwsh
         env:
@@ -81,3 +90,12 @@ jobs:
           }
           gh release edit $env:GITHUB_REF_NAME --draft=false --latest
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }
+      - name: Verify the public update channel
+        shell: pwsh
+        run: |
+          for ($attempt = 0; $attempt -lt 6; $attempt++) {
+            npm run release:verify
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -lt 5) { Start-Sleep -Seconds 10 }
+          }
+          throw 'Published release could not be verified through the public updater endpoint.'

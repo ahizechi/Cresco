@@ -1,6 +1,7 @@
 [package]
 name = "cresco-desktop"
-version = "0.1.1"
+version = "0.1.2"
+license = "MIT"
 description = "Local habits and personal finance"
 edition = "2021"
 rust-version = "1.88"

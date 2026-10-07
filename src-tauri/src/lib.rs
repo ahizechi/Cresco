@@ -128,7 +128,10 @@ async fn routines_export(app: tauri::AppHandle) -> Result<bool, String> {
 }
 #[tauri::command]
 fn prepare_update(state: State<Data>) -> Result<(), String> {
-    let mut guard = gate(&state)?;
+    prepare_data_update(&state)
+}
+fn prepare_data_update(state: &Data) -> Result<(), String> {
+    let mut guard = gate(state)?;
     state.finance.load()?;
     state.habits.load()?;
     state.routines.load()?;
@@ -140,8 +143,14 @@ fn prepare_update(state: State<Data>) -> Result<(), String> {
     for name in ["finance.dpapi", "habits.dpapi", "routines.dpapi"] {
         let source = state.directory.join(name);
         if source.exists() {
-            fs::copy(source, backup.join(name))
+            let destination = backup.join(name);
+            fs::copy(source, &destination)
                 .map_err(|_| "Could not preserve data before updating.")?;
+            fs::OpenOptions::new()
+                .write(true)
+                .open(destination)
+                .and_then(|file| file.sync_all())
+                .map_err(|_| "Could not flush update recovery data to disk.")?;
         }
     }
     *guard = true;
@@ -191,4 +200,89 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("Cresco could not start")
+}
+
+#[cfg(all(test, windows))]
+mod update_tests {
+    use super::*;
+    fn fixture() -> Data {
+        let directory =
+            std::env::temp_dir().join(format!("cresco-update-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&directory).unwrap();
+        Data {
+            finance: finance::Store::new(directory.clone()),
+            habits: habits::Store::new(directory.clone()),
+            routines: routines::Store::new(directory.clone()),
+            directory,
+            gate: Mutex::new(false),
+        }
+    }
+    #[test]
+    fn preparation_preserves_all_stores_and_blocks_writes_until_cancelled() {
+        let state = fixture();
+        let finance = state.finance.save(state.finance.load().unwrap()).unwrap();
+        let habits = state
+            .habits
+            .save(state.habits.load().unwrap(), false)
+            .unwrap();
+        state
+            .routines
+            .save(serde_json::json!({"routines":[]}), 0, false)
+            .unwrap();
+        prepare_data_update(&state).unwrap();
+        assert!(gate(&state).is_err());
+        let backup = fs::read_dir(state.directory.join("update-backups"))
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
+        for name in ["finance.dpapi", "habits.dpapi", "routines.dpapi"] {
+            let saved = fs::read(state.directory.join(name)).unwrap();
+            assert_eq!(fs::read(backup.join(name)).unwrap(), saved);
+            assert!(saved.starts_with(b"CRESCO0001"));
+        }
+        assert_eq!(
+            finance::Store::new(state.directory.clone()).load().unwrap(),
+            finance
+        );
+        assert_eq!(
+            habits::Store::new(state.directory.clone()).load().unwrap(),
+            habits
+        );
+        *state.gate.lock().unwrap() = false;
+        assert!(gate(&state).is_ok());
+        fs::remove_dir_all(state.directory).unwrap();
+    }
+    #[test]
+    fn unreadable_store_stops_update_without_overwriting_or_locking() {
+        let state = fixture();
+        fs::write(
+            state.directory.join("finance.dpapi"),
+            b"unreadable synthetic fixture",
+        )
+        .unwrap();
+        assert!(prepare_data_update(&state).is_err());
+        assert!(gate(&state).is_ok());
+        assert_eq!(
+            fs::read(state.directory.join("finance.dpapi")).unwrap(),
+            b"unreadable synthetic fixture"
+        );
+        assert!(!state.directory.join("update-backups").exists());
+        fs::remove_dir_all(state.directory).unwrap();
+    }
+    #[test]
+    fn failed_backup_stops_update_and_retains_readable_records() {
+        let state = fixture();
+        let saved = state.finance.save(state.finance.load().unwrap()).unwrap();
+        fs::write(
+            state.directory.join("update-backups"),
+            b"synthetic blocking file",
+        )
+        .unwrap();
+        assert!(prepare_data_update(&state).is_err());
+        assert!(gate(&state).is_ok());
+        assert_eq!(state.finance.load().unwrap(), saved);
+        fs::remove_dir_all(state.directory).unwrap();
+    }
 }

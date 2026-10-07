@@ -15,6 +15,67 @@ import {
   editingAllowed,
   trackWrite,
 } from "../src/updates/writes";
+import {
+  validateRoutines,
+  changeRoutine,
+  type Routine,
+} from "../src/features/sections/routines";
+test("routine restart never silently drops retained history", () => {
+  const row: Routine = {
+    id: "r",
+    title: "Synthetic",
+    kind: "continuous",
+    createdAt: "2026-10-07T12:00:00Z",
+    status: "stopped",
+    startedAt: null,
+    elapsedMs: 1000,
+    stoppedAt: "2026-10-07T12:01:00Z",
+    checks: [],
+    history: Array.from({ length: 100 }, () => ({
+      endedAt: "2026-10-07T12:01:00Z",
+      elapsedMs: 1000,
+    })),
+  };
+  expect(() =>
+    changeRoutine(row, "restart", Date.parse("2026-10-07T12:02:00Z")),
+  ).toThrow("history is full");
+  expect(row.history).toHaveLength(100);
+  const earlier = { ...row, history: row.history.slice(0, 99) };
+  expect(
+    changeRoutine(earlier, "restart", Date.parse("2026-10-07T12:02:00Z"))
+      .history,
+  ).toHaveLength(100);
+});
+test("routine restores reject duplicate IDs, unsafe elapsed values and invalid timestamps", () => {
+  const row = {
+    id: "synthetic",
+    title: "Synthetic routine",
+    kind: "continuous",
+    createdAt: "2026-10-07T12:00:00Z",
+    status: "paused",
+    startedAt: null,
+    elapsedMs: 1000,
+    checks: [],
+    history: [],
+  };
+  expect(validateRoutines({ routines: [row] }).routines).toHaveLength(1);
+  expect(() => validateRoutines({ routines: [row, row] })).toThrow();
+  for (const elapsedMs of [1.5, -1, Number.MAX_SAFE_INTEGER + 1])
+    expect(() =>
+      validateRoutines({ routines: [{ ...row, elapsedMs }] }),
+    ).toThrow();
+  expect(() =>
+    validateRoutines({ routines: [{ ...row, createdAt: "not a timestamp" }] }),
+  ).toThrow();
+  expect(() =>
+    validateRoutines({
+      routines: [{ ...row, createdAt: "2026-02-31T12:00:00Z" }],
+    }),
+  ).toThrow();
+  expect(() =>
+    validateRoutines({ routines: [{ ...row, title: "x".repeat(501) }] }),
+  ).toThrow();
+});
 test("money never guesses exchange rates or drops malformed data", () => {
   const data = emptyFinance();
   data.accounts.push({

@@ -77,7 +77,9 @@ export function reviveRoutines(value: unknown): RoutinesState {
                 ? {
                     endedAt: item.endedAt,
                     elapsedMs: item.elapsedMs,
-                    ...(item.endUnknown === true ? { endUnknown: true } : {}),
+                    ...(typeof item.endUnknown === "boolean"
+                      ? { endUnknown: item.endUnknown }
+                      : {}),
                   }
                 : null;
             },
@@ -104,6 +106,10 @@ export function changeRoutine(
 ): Routine {
   const total = elapsed(routine, now),
     at = new Date(now).toISOString();
+  if (action === "restart" && routine.history.length >= 100)
+    throw Error(
+      "Routine history is full. Export its backup and create a new routine to keep every run.",
+    );
   if (action === "restart")
     return {
       ...routine,
@@ -121,7 +127,7 @@ export function changeRoutine(
             ? { endUnknown: true }
             : {}),
         },
-      ].slice(-100),
+      ],
     };
   if (action === "resume")
     return routine.status === "paused"
@@ -166,6 +172,45 @@ export function validateRoutines(value: unknown): RoutinesState {
     throw Error("Invalid routines collection.");
   const rows = (value as { routines: unknown[] }).routines;
   if (rows.length > 200) throw Error("Too many routines.");
+  const ids = new Set<string>();
+  const dateTime = (text: unknown) =>
+    typeof text === "string" &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(
+      text,
+    ) &&
+    Number.isFinite(Date.parse(text)) &&
+    new Date(text.slice(0, 10) + "T12:00:00Z").toISOString().slice(0, 10) ===
+      text.slice(0, 10);
+  const bytes = (text: string) => new TextEncoder().encode(text).length;
+  for (const value of rows) {
+    const row = asRecord(value);
+    if (
+      typeof row.id !== "string" ||
+      !row.id ||
+      bytes(row.id) > 200 ||
+      ids.has(row.id) ||
+      typeof row.title !== "string" ||
+      bytes(row.title) > 500 ||
+      !Number.isSafeInteger(row.elapsedMs) ||
+      Number(row.elapsedMs) < 0 ||
+      !dateTime(row.createdAt) ||
+      (row.startedAt !== null && !dateTime(row.startedAt)) ||
+      (row.stoppedAt !== undefined && !dateTime(row.stoppedAt))
+    )
+      throw Error("Invalid routine fields. Nothing was restored.");
+    ids.add(row.id);
+    for (const item of Array.isArray(row.history) ? row.history : []) {
+      const history = asRecord(item);
+      if (
+        !dateTime(history.endedAt) ||
+        !Number.isSafeInteger(history.elapsedMs) ||
+        Number(history.elapsedMs) < 0
+      )
+        throw Error("Invalid routine history. Nothing was restored.");
+    }
+  }
+  if (bytes(JSON.stringify(value)) > 2 * 1024 * 1024)
+    throw Error("Routines exceed 2 MB.");
   const revived = reviveRoutines(value);
   if (JSON.stringify(canonical(revived)) !== JSON.stringify(canonical(value)))
     throw Error("Invalid routine fields. Nothing was restored.");

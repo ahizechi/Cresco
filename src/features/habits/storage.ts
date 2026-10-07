@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "../../platform";
+import { trackedMutation } from "../../updates/writes";
 import { emptyHabits, validateHabits, type HabitData } from "./model";
 export const previewKey = "cresco-habits-preview-v1";
 export async function loadHabits(): Promise<HabitData> {
@@ -10,6 +11,13 @@ export async function loadHabits(): Promise<HabitData> {
 export async function saveHabits(
   data: HabitData,
   recovery = false,
+): Promise<HabitData> {
+  if (recovery) return trackedMutation(() => persistHabits(data, true));
+  return persistHabits(data, false);
+}
+async function persistHabits(
+  data: HabitData,
+  recovery: boolean,
 ): Promise<HabitData> {
   validateHabits(data);
   if (JSON.stringify(data).length > 16 * 1024 * 1024)

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { desktop } from "../../platform";
+import { trackedMutation } from "../../updates/writes";
 import { emptyFinance, validateFinance, type FinanceData } from "./model";
 const key = "cresco-finance-preview-v1";
 export async function loadFinance(): Promise<FinanceData> {
@@ -22,6 +23,9 @@ export async function saveFinance(data: FinanceData): Promise<FinanceData> {
   });
 }
 export async function recoverFinance(data: FinanceData): Promise<FinanceData> {
+  return trackedMutation(() => recover(data));
+}
+async function recover(data: FinanceData): Promise<FinanceData> {
   validateFinance(data);
   if (desktop)
     return validateFinance(await invoke("finance_recover", { data }));
