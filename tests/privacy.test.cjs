@@ -17,6 +17,7 @@ test("independent identity, installer and signed update endpoint", () => {
   assert.equal(config.productName, "Cresco");
   assert.equal(config.bundle.windows.nsis.installMode, "currentUser");
   assert.equal(config.bundle.windows.allowDowngrades, false);
+  assert.equal(config.bundle.resources["../LICENSE"], "LICENSE.txt");
   assert.equal(config.bundle.createUpdaterArtifacts, true);
   assert.deepEqual(config.plugins.updater.endpoints, [
     "https://github.com/ahizechi/Cresco/releases/latest/download/latest.json",
