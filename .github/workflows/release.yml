@@ -5,7 +5,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: release-${{ github.ref }}
+  group: cresco-stable-release
   cancel-in-progress: false
 jobs:
   release:
@@ -54,3 +54,30 @@ jobs:
           if ($assets.Count -ne 4) { throw 'Expected one complete four-asset release set.' }
           gh release create $env:GITHUB_REF_NAME --draft --verify-tag --title "Cresco $env:GITHUB_REF_NAME" --notes-file $notes @assets
           if ($LASTEXITCODE -ne 0) { throw 'Draft upload failed.' }
+      - name: Verify uploaded assets and publish stable release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $download = Join-Path $env:RUNNER_TEMP 'cresco-upload-verification'
+          gh release download $env:GITHUB_REF_NAME --dir $download
+          if ($LASTEXITCODE -ne 0) { throw 'Release download verification failed.' }
+          $local = 'src-tauri/target/release/bundle/nsis'
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $names = @("Cresco_${version}_x64-setup.exe", "Cresco_${version}_x64-setup.exe.sig", 'latest.json', 'SHA256SUMS.txt')
+          if (@(Get-ChildItem $download -File).Count -ne 4) { throw 'Incomplete uploaded release.' }
+          foreach ($name in $names) {
+            $expected = (Get-FileHash (Join-Path $local $name) -Algorithm SHA256).Hash
+            $actual = (Get-FileHash (Join-Path $download $name) -Algorithm SHA256).Hash
+            if ($actual -ne $expected) { throw "Uploaded asset differs: $name" }
+          }
+          node tools/release-manifest.cjs $download
+          if ($LASTEXITCODE -ne 0) { throw 'Uploaded installer signature verification failed.' }
+          # A delayed older build must never replace a newer stable update channel.
+          $latest = gh release view --json tagName --jq '.tagName' 2>$null
+          if ($LASTEXITCODE -ne 0) { throw 'Could not verify the current stable release; leaving this release as a draft.' }
+          if ([version]($latest -replace '^v','') -ge [version]$version) {
+            throw 'A same-version or newer stable release already exists; leaving this release as a draft.'
+          }
+          gh release edit $env:GITHUB_REF_NAME --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed.' }

@@ -14,7 +14,7 @@ Get the Windows x64 installer from [Releases](https://github.com/ahizechi/Cresco
 - Local merchant rules, budgets, savings goals and scheduled bills/income.
 - Portable JSON backups, unreadable-file recovery, light/dark themes, keyboard navigation and reduced motion.
 
-GBP overview figures only include GBP accounts. Other account currencies remain attached to their records; values are never converted with an invented exchange rate. Bank connections, AI services and cloud/phone sync are not included.
+GBP overview figures only include GBP accounts. Other account currencies remain attached to their records; values are never converted with an invented exchange rate. Bank connections and cloud/phone sync are not included.
 
 ## Privacy and storage
 
