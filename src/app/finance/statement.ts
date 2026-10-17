@@ -50,12 +50,3 @@ export async function readStatement(file: File, accountId: string) {
     sourceRows: csv.rows.length,
   };
 }
-
-export async function suggestCategories(
-  rows: ReviewRow[],
-  _continue: () => boolean = () => true,
-  progress: (done: number, total: number) => void = () => {},
-) {
-  progress(rows.length, rows.length);
-  return { rows, error: "" };
-}

@@ -1,0 +1,208 @@
+{
+  "finance": {
+    "schema": 1,
+    "revision": 17,
+    "accounts": [
+      {
+        "id": "current",
+        "name": "Synthetic current",
+        "bank": "Synthetic bank",
+        "kind": "current",
+        "currency": "GBP",
+        "openingBalance": 10000,
+        "openingDate": "2026-01-01",
+        "archived": false
+      },
+      {
+        "id": "savings",
+        "name": "Synthetic savings",
+        "bank": "Synthetic bank",
+        "kind": "current",
+        "currency": "GBP",
+        "openingBalance": 10000,
+        "openingDate": "2026-01-01",
+        "archived": false
+      }
+    ],
+    "transactions": [
+      {
+        "id": "purchase",
+        "accountId": "current",
+        "date": "2026-09-02",
+        "description": "Synthetic café",
+        "amount": -1234,
+        "category": "Groceries",
+        "kind": "expense",
+        "status": "posted",
+        "note": "Original note – retained",
+        "source": "manual"
+      },
+      {
+        "id": "transfer-out",
+        "accountId": "current",
+        "date": "2026-09-02",
+        "description": "Synthetic café",
+        "amount": -500,
+        "category": "Groceries",
+        "kind": "transfer",
+        "status": "posted",
+        "note": "Original note – retained",
+        "source": "manual",
+        "transferId": "pair"
+      },
+      {
+        "id": "transfer-in",
+        "accountId": "savings",
+        "date": "2026-09-02",
+        "description": "Synthetic café",
+        "amount": 500,
+        "category": "Groceries",
+        "kind": "transfer",
+        "status": "posted",
+        "note": "Original note – retained",
+        "source": "manual",
+        "transferId": "pair"
+      }
+    ],
+    "budgets": [
+      {
+        "id": "budget",
+        "month": "2026-09",
+        "currency": "GBP",
+        "category": "Groceries",
+        "limit": 20000
+      }
+    ],
+    "recurring": [
+      {
+        "id": "rent",
+        "name": "Synthetic rent",
+        "accountId": "current",
+        "amount": 5000,
+        "category": "Bills",
+        "kind": "expense",
+        "frequency": "monthly",
+        "start": "2026-01-01",
+        "end": "",
+        "paused": false
+      }
+    ],
+    "assets": [
+      {
+        "id": "asset",
+        "name": "Synthetic asset",
+        "currency": "GBP",
+        "kind": "asset",
+        "value": 12345,
+        "date": "2026-09-01",
+        "note": "Retain valuation"
+      }
+    ],
+    "goals": [
+      {
+        "id": "goal",
+        "name": "Synthetic goal",
+        "currency": "GBP",
+        "target": 100000,
+        "saved": 5000,
+        "deadline": "2027-01-01",
+        "accountId": "savings"
+      }
+    ],
+    "rules": [
+      {
+        "id": "rule",
+        "contains": "synthetic café",
+        "category": "Groceries",
+        "kind": "expense",
+        "match": "exact"
+      }
+    ],
+    "imports": [
+      {
+        "id": "batch",
+        "accountId": "current",
+        "name": "Synthetic statement",
+        "importedAt": "2026-09-02T12:00:00Z",
+        "count": 1,
+        "duplicateCount": 0
+      }
+    ],
+    "snapshots": [
+      {
+        "id": "snapshot",
+        "date": "2026-09-02",
+        "currency": "GBP",
+        "value": 98765
+      }
+    ]
+  },
+  "habits": {
+    "schema": 1,
+    "revision": 23,
+    "timezone": "Europe/London",
+    "habits": [
+      {
+        "id": "check",
+        "name": "Synthetic reading – 日本語",
+        "description": "",
+        "category": "Daily",
+        "period": "Anytime",
+        "color": "blue",
+        "rules": [
+          {
+            "from": "2026-09-01",
+            "days": [0, 1, 2, 3, 4, 5, 6],
+            "kind": "check",
+            "target": 1,
+            "unit": "",
+            "enabled": true
+          },
+          {
+            "from": "2026-10-01",
+            "days": [0, 1, 2, 3, 4, 5, 6],
+            "kind": "count",
+            "target": 5,
+            "unit": "pages",
+            "enabled": true
+          }
+        ],
+        "pauses": []
+      }
+    ],
+    "entries": [
+      {
+        "habitId": "check",
+        "date": "2026-09-02",
+        "value": 1,
+        "skipped": false,
+        "note": "Original habit note"
+      }
+    ]
+  },
+  "routines": {
+    "revision": 9,
+    "data": {
+      "routines": [
+        {
+          "id": "timer",
+          "title": "Synthetic routine – retained",
+          "kind": "continuous",
+          "createdAt": "2026-09-01T12:00:00Z",
+          "status": "paused",
+          "startedAt": null,
+          "elapsedMs": 123456,
+          "stoppedAt": null,
+          "checks": ["2026-09-02"],
+          "history": [
+            {
+              "elapsedMs": 12000,
+              "endedAt": "2026-09-01T12:05:00Z",
+              "endUnknown": true
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

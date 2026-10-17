@@ -14,23 +14,18 @@ import {
   type ReviewRow,
   type ReviewCorrection,
   readStatement,
-  suggestCategories,
 } from "./statement";
 import { merchantKey } from "../../features/finance/merchants";
-
-export function ImportDialog() {
-  return <RealImportDialog />;
-}
 
 const reason = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
-function RealImportDialog() {
+export function ImportDialog() {
   const picker = useRef<HTMLInputElement>(null);
-  const suggestionRun = useRef(0);
+  const readRun = useRef(0);
   useEffect(
     () => () => {
-      suggestionRun.current++;
+      readRun.current++;
     },
     [],
   );
@@ -47,7 +42,6 @@ function RealImportDialog() {
   const [feeRows, setFeeRows] = useState(0);
   const [error, setError] = useState("");
   const [reading, setReading] = useState(false);
-  const [sortProgress, setSortProgress] = useState({ done: 0, total: 0 });
   const [step, setStep] = useState<1 | 2>(1);
   const { busy: saving, submit } = useSubmit();
   const busy = reading || saving;
@@ -110,10 +104,10 @@ function RealImportDialog() {
     if (!selected) return;
     setReading(true);
     setError("");
-    setSortProgress({ done: 0, total: 0 });
-    const run = ++suggestionRun.current;
+    const run = ++readRun.current;
     try {
       const statement = await readStatement(selected, accountId);
+      if (run !== readRun.current) return;
       setRows(statement.rows);
       setDuplicates(statement.duplicates);
       setCorrections(statement.corrections);
@@ -122,22 +116,17 @@ function RealImportDialog() {
       setReverted(statement.reverted);
       setFeeRows(statement.feeRows);
       setFile(selected);
-      const sorted = await suggestCategories(
-        statement.rows,
-        () => run === suggestionRun.current,
-        (done, total) => setSortProgress({ done, total }),
-      );
-      if (run !== suggestionRun.current) return;
-      setRows(sorted.rows);
-      setError(sorted.error);
     } catch (e) {
+      if (run !== readRun.current) return;
       setError(reason(e));
       setFile(null);
       setRows([]);
       setCorrections([]);
     } finally {
-      setReading(false);
-      if (picker.current) picker.current.value = "";
+      if (run === readRun.current) {
+        setReading(false);
+        if (picker.current) picker.current.value = "";
+      }
     }
   };
   const save = () => {
@@ -190,7 +179,7 @@ function RealImportDialog() {
           <>
             <Btn
               onClick={() => {
-                suggestionRun.current++;
+                readRun.current++;
                 setReading(false);
                 setStep(1);
               }}
@@ -226,6 +215,8 @@ function RealImportDialog() {
               id="real-import-account"
               value={accountId}
               onChange={(value) => {
+                readRun.current++;
+                setReading(false);
                 setAccountId(value);
                 setFile(null);
                 setRows([]);
@@ -247,8 +238,8 @@ function RealImportDialog() {
           <div className="drop">
             <I n="file-up" s={22} />
             <div>
-              {reading && sortProgress.total
-                ? `Reviewing ${sortProgress.done} of ${sortProgress.total} merchant groups`
+              {reading
+                ? "Reading statement…"
                 : file
                   ? `${file.name} · ${rows.length} new · ${corrections.length} corrections`
                   : "Choose a CSV statement"}
@@ -289,9 +280,8 @@ function RealImportDialog() {
             }
           />
           <p className="meta" role="status">
-            {sortProgress.total
-              ? `Reviewed ${sortProgress.done} of ${sortProgress.total} distinct merchants. Unsure picks have a Keep.`
-              : "Saved rules and known merchants applied. Choose categories for any remaining rows."}
+            Saved rules and known merchants applied. Choose categories for any
+            remaining rows.
           </p>
           <div
             className="table-wrap"
