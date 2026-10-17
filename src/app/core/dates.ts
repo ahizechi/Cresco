@@ -109,14 +109,6 @@ export const dlong = (day: string) => {
 export const dow = (day: string) => toD(day).getDay();
 export const mondayOf = (day: string) => addDays(day, -((dow(day) + 6) % 7));
 
-/** Minutes after midnight as HH:MM. */
-export const hm = (minutes: number) =>
-  pad(Math.floor(minutes / 60)) + ":" + pad(minutes % 60);
-/** HH:MM as minutes after midnight. */
-export const toMin = (time: string) => {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-};
 /** 90 → "1 h 30 min" */
 export const dur = (minutes: number) =>
   minutes >= 60
@@ -137,23 +129,3 @@ export const daysText = (days: number[]) =>
           .filter((day) => days.includes(day))
           .map((day) => DOW[day])
           .join(", ");
-
-/** The day a quick-added task names: tomorrow, none for "someday", else today. */
-export const guessDate = (text: string) =>
-  /tomorrow/i.test(text)
-    ? addDays(TODAY, 1)
-    : /(someday|anytime|eventually)/i.test(text)
-      ? null
-      : TODAY;
-
-/** Relative day label: Today, Tomorrow, Yesterday or Wed 24 Sep. */
-export const whenText = (day: string | null | undefined) =>
-  !day
-    ? "Any time"
-    : day === TODAY
-      ? "Today"
-      : day === addDays(TODAY, 1)
-        ? "Tomorrow"
-        : day === addDays(TODAY, -1)
-          ? "Yesterday"
-          : dmed(day);

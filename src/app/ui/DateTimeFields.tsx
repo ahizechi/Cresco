@@ -259,5 +259,3 @@ export function DateField({
     </div>
   );
 }
-
-export { TimeField } from "./TimeField";

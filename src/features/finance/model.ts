@@ -253,22 +253,6 @@ export function balance(
       .reduce((sum, t) => sum + t.amount, 0)
   );
 }
-export function periodTransactions(
-  data: FinanceData,
-  month: string,
-  currency: Currency,
-) {
-  const ids = new Set(
-    data.accounts.filter((a) => a.currency === currency).map((a) => a.id),
-  );
-  return data.transactions.filter(
-    (t) =>
-      ids.has(t.accountId) &&
-      t.status === "posted" &&
-      t.date.startsWith(month) &&
-      t.date <= today(),
-  );
-}
 export function totals(transactions: Transaction[]) {
   const spent = transactions
     .filter((t) => t.kind === "expense")
@@ -279,23 +263,6 @@ export function totals(transactions: Transaction[]) {
       .reduce((s, t) => s + t.amount, 0),
     spending: spent === 0 ? 0 : -spent,
   };
-}
-export function categorySpend(transactions: Transaction[]) {
-  const sums = new Map<string, number>();
-  for (const t of transactions)
-    if (t.kind === "expense")
-      sums.set(t.category, (sums.get(t.category) ?? 0) - t.amount);
-  return [...sums].sort((a, b) => b[1] - a[1]);
-}
-export function netWorth(data: FinanceData, currency: Currency) {
-  return (
-    data.accounts
-      .filter((a) => a.currency === currency)
-      .reduce((s, a) => s + balance(data, a), 0) +
-    data.assets
-      .filter((a) => a.currency === currency)
-      .reduce((s, a) => s + (a.kind === "liability" ? -a.value : a.value), 0)
-  );
 }
 export function addMonths(date: string, count: number): string {
   const [y, m, d] = date.split("-").map(Number);

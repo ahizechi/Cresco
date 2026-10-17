@@ -2,8 +2,8 @@
 // totals, budget progress, cash history and what needs attention.
 import { sampleMode } from "@sample";
 import { TODAY, addDays, toD } from "../core/dates";
-import { money, monthText } from "../core/format";
-import { S, go, openDialog } from "../core/state";
+import { monthText } from "../core/format";
+import { S } from "../core/state";
 import type { IconName } from "../ui/icons";
 import type { AccountRow, BudgetRow, TxnRow } from "../core/view";
 import { merchantKey } from "../../features/finance/merchants";
@@ -56,9 +56,6 @@ export const MOVE_CATS = [
   "Uncategorised",
 ];
 
-export const catColor = (cat: string) =>
-  CATS[cat]?.tone ? `var(--t-${CATS[cat].tone})` : "var(--fg-subtle)";
-
 export const acct = (id: string | null | undefined): AccountRow | undefined =>
   S.accounts.find((a) => a.id === id);
 
@@ -105,12 +102,6 @@ const counts = (t: TxnRow) =>
   (t.status !== "pending" && t.date <= TODAY && acct(t.acct)?.cur === "GBP");
 
 export type FinancePeriod = "month" | "previous" | "six" | "all";
-export const periodLabel: Record<FinancePeriod, string> = {
-  month: "This month",
-  previous: "Last month",
-  six: "Last 6 months",
-  all: "All dates",
-};
 export function periodRows(period: FinancePeriod): TxnRow[] {
   const first = toD(`${thisMonth()}-01`);
   first.setMonth(first.getMonth() - 5);
@@ -125,40 +116,11 @@ export function periodRows(period: FinancePeriod): TxnRow[] {
   );
 }
 
-export function periodBreakdown(period: FinancePeriod) {
-  const spending: Record<string, number> = {};
-  const income: Record<string, number> = {};
-  for (const t of periodRows(period)) {
-    if (t.transfer) continue;
-    if (t.kind === "expense") spending[t.cat] = (spending[t.cat] || 0) - t.amt;
-    if (t.kind === "income")
-      income[t.merchant] = (income[t.merchant] || 0) + t.amt;
-  }
-  return { spending, income };
-}
-
 export function spentByCat(month = thisMonth()): Record<string, number> {
   const out: Record<string, number> = {};
   for (const t of monthTx(month))
     if (t.kind === "expense" && !t.transfer && counts(t))
       out[t.cat] = (out[t.cat] || 0) - t.amt;
-  return out;
-}
-
-export const totalSpent = (month?: string) =>
-  Object.values(spentByCat(month)).reduce((a, b) => a + b, 0);
-
-const incomeRows = (month?: string) =>
-  monthTx(month).filter((t) => t.kind === "income" && !t.transfer && counts(t));
-
-export const totalIncome = (month?: string) =>
-  incomeRows(month).reduce((a, t) => a + t.amt, 0);
-
-/** This month's income by who paid it. */
-export function incomeBySource(): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const t of incomeRows())
-    out[t.merchant] = (out[t.merchant] || 0) + t.amt;
   return out;
 }
 
@@ -178,24 +140,6 @@ export interface BudgetProgress extends BudgetRow {
 export function budgetRows(): BudgetProgress[] {
   const spent = spentByCat();
   return S.budgets.map((b) => ({ ...b, spent: spent[b.cat] || 0 }));
-}
-
-/** Cash balance at the end of each of the last `days` days, oldest first. */
-export function cashHistory(days = 30) {
-  const accounts = cashAccts();
-  const ids = accounts.map((a) => a.id);
-  let bal = accounts.reduce((s, a) => s + a.bal, 0);
-  const out = [bal];
-  for (let i = 0; i < days; i++) {
-    const day = addDays(TODAY, -i);
-    bal -= S.txns
-      .filter(
-        (t) => t.date === day && ids.includes(t.acct) && t.status !== "pending",
-      )
-      .reduce((s, t) => s + t.amt, 0);
-    out.unshift(bal);
-  }
-  return out;
 }
 
 /** Budgeted spending this month, cumulative by day; null after today. */
@@ -251,55 +195,6 @@ export interface Attention {
   act: string;
   f: () => void;
 }
-export function financeAttention(): Attention[] {
-  const uncategorised = S.txns.filter(
-    (t) =>
-      t.cat === "Uncategorised" &&
-      (t.kind === "expense" || t.kind === "income"),
-  ).length;
-  return [
-    ...(uncategorised
-      ? [
-          {
-            k: "uncategorised",
-            i: "circle-dashed" as const,
-            text: `${uncategorised} transactions need categories; breakdowns and budgets are incomplete`,
-            act: "Review",
-            f: () => go("finance", "transactions"),
-          },
-        ]
-      : []),
-    ...S.txns
-      .filter((t) => t.status === "pending")
-      .map((t): Attention => ({
-        k: t.id,
-        i: "clock",
-        text: `${t.merchant} ${money(t.amt)} is pending`,
-        act: "Review",
-        f: () => go("finance", "transactions"),
-      })),
-    ...S.banks
-      .filter((b) => b.status === "renew")
-      .map((b): Attention => ({
-        k: b.id,
-        i: "landmark",
-        text: `${b.bank} access ends ${b.expires}`,
-        act: "Renew",
-        f: () => openDialog("account"),
-      })),
-    ...budgetRows()
-      .filter((b) => b.spent > b.limit)
-      .map((b): Attention => ({
-        k: b.cat,
-        i: "triangle-alert",
-        text: `${b.cat} is ${money(b.spent - b.limit)} over budget`,
-        act: "Adjust",
-        f: () =>
-          openDialog("budget", { b: S.budgets.find((x) => x.cat === b.cat) }),
-      })),
-  ];
-}
-
 /** Whole months until a day, at least one. */
 export const monthsUntil = (day: string) =>
   Math.max(

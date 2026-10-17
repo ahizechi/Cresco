@@ -29,7 +29,6 @@ export const PAGES = {
   settings: { label: "Settings", icon: "settings", tabs: null },
 } satisfies Record<string, PageMeta>;
 export type PageId = keyof typeof PAGES;
-export const PAGE_IDS = Object.keys(PAGES) as PageId[];
 export const isPage = (v: unknown): v is PageId =>
   typeof v === "string" && Object.hasOwn(PAGES, v);
 export const pageMeta = (id: PageId): PageMeta => PAGES[id];

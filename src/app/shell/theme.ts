@@ -19,10 +19,3 @@ export function setTheme(theme: ViewState["theme"]) {
   prefs.set("theme", theme);
   applyTheme();
 }
-
-export function toggleCollapsed() {
-  updateView((view) => {
-    view.collapsed = !view.collapsed;
-  });
-  prefs.set("collapsed", S.collapsed);
-}

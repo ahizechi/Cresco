@@ -182,24 +182,6 @@ export function keepSuggestedCategory(id: string): Change {
   };
 }
 
-/** Records that Suggested had no usable answer, so the automatic pass skips these
- * rows until a later import brings new rows for the merchant. */
-export function markSuggestedUnanswered(group: MerchantGroup): Change {
-  const ids = new Set(group.ids);
-  return {
-    keys: ["txns"],
-    sample: () => {},
-    real: ledger((data) => ({
-      ...data,
-      transactions: data.transactions.map((row) =>
-        ids.has(row.id) && row.category === "Uncategorised"
-          ? { ...row, suggestedReview: "unanswered" as const }
-          : row,
-      ),
-    })),
-  };
-}
-
 /** Applies one reviewed merchant choice to all matching uncategorised rows. */
 export function setMerchantCategories(
   decisions: {

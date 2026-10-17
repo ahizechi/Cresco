@@ -58,10 +58,6 @@ export const parseMoney = (text: string | number): number | null => {
 
 type Instant = string | number | Date;
 
-/** Date and time a source reported, e.g. 24/09/2026, 14:01:05. */
-export const dateTimeText = (at: Instant) =>
-  new Date(at).toLocaleString(LOCALE);
-
 /** Clock time, e.g. 14:01:05, or 14:01 without seconds. */
 export const timeText = (at: Instant, seconds = true) =>
   new Date(at).toLocaleTimeString(
@@ -78,14 +74,6 @@ export const dayMonthText = (at: Instant | null | undefined) =>
       })
     : "";
 
-/** Full date, e.g. 31 Jan 2028. */
-export const fullDateText = (at: Instant) =>
-  new Date(at).toLocaleDateString(LOCALE, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
 /** Compact date in the current year, with a year when older or ahead. */
 export const shortDateText = (at: Instant) => {
   const date = new Date(at);
@@ -94,14 +82,6 @@ export const shortDateText = (at: Instant) => {
   return date.getFullYear() === new Date().getFullYear()
     ? dayMonth
     : `${dayMonth} ${date.getFullYear()}`;
-};
-
-export const shortDateTimeText = (at: Instant) => {
-  const date = new Date(at);
-  if (!Number.isFinite(date.getTime())) return "";
-  const today = new Date();
-  const sameDay = date.toDateString() === today.toDateString();
-  return `${sameDay ? "Today" : shortDateText(date)} ${timeText(date, false)}`;
 };
 
 /** A YYYY-MM month as "September 2026", or "Sep" when short. */
