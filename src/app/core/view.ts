@@ -4,6 +4,7 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type { IconName } from "../ui/icons";
 import type { PageId } from "./routes";
+import type { HabitRule } from "../../features/habits/model";
 
 /* ---------- finance ---------- */
 export interface TxnRow {
@@ -105,6 +106,8 @@ export interface HabitRow {
   status: "active" | "paused" | "archived";
   created: string;
   pauses?: HabitPause[];
+  /** Saved rule history, projected without changing the persisted format. */
+  rules?: HabitRule[];
 }
 export interface RoutineRow {
   id: string;

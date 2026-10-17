@@ -29,6 +29,7 @@ export function hydrateHabits(view: ViewState, data: HabitData) {
       why: x.description,
       status: !rule.enabled ? "archived" : paused ? "paused" : "active",
       created: x.rules[0].from,
+      rules: x.rules,
       pauses: x.pauses.map((p) => ({
         from: p.from,
         until: p.to === PAUSE_UNTIL_RESUMED ? null : p.to,

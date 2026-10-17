@@ -97,23 +97,13 @@ export function addDays(date: string, count: number) {
 }
 export const dayNumber = (date: string) =>
   (new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7;
-export function dateLabel(date: string, short = false) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "UTC",
-    weekday: short ? "short" : "long",
-    day: "numeric",
-    month: short ? "short" : "long",
-  }).format(new Date(`${date}T12:00:00Z`));
-}
 export function datesBetween(from: string, to: string) {
   const days: string[] = [];
   for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
   return days;
 }
 export const entryKey = (habitId: string, date: string) => `${habitId}:${date}`;
-export const entryIndex = (data: HabitData) =>
-  new Map(data.entries.map((e) => [entryKey(e.habitId, e.date), e]));
-export function ruleOn(habit: Habit, date: string) {
+export function ruleOn(habit: Pick<Habit, "rules">, date: string) {
   for (let i = habit.rules.length - 1; i >= 0; i--)
     if (habit.rules[i].from <= date) return habit.rules[i];
   return undefined;
@@ -137,33 +127,6 @@ export function stateOn(
 }
 export const isScheduled = (state: DayState) =>
   ["done", "partial", "skipped", "missed", "pending"].includes(state);
-export function statsFor(
-  habit: Habit,
-  today: string,
-  entries: Map<string, CheckIn>,
-) {
-  let current = 0,
-    best = 0,
-    completed = 0,
-    due28 = 0,
-    done28 = 0;
-  const cutoff = addDays(today, -28);
-  for (const date of datesBetween(habit.rules[0].from, today)) {
-    const state = stateOn(habit, date, today, entries);
-    if (state === "done") {
-      current++;
-      completed++;
-      best = Math.max(best, current);
-    } else if (isScheduled(state) && (date < today || state === "skipped"))
-      current = 0;
-    // The current day is still open: only include closed days in consistency.
-    if (date >= cutoff && date < today && isScheduled(state)) {
-      due28++;
-      if (state === "done") done28++;
-    }
-  }
-  return { current, best, completed, due28, done28 };
-}
 export function changeRule(habit: Habit, rule: HabitRule): Habit {
   return {
     ...habit,
@@ -197,11 +160,6 @@ export function putEntry(data: HabitData, entry: CheckIn): HabitData {
     });
   return { ...data, entries };
 }
-export const scheduleLabel = (rule: HabitRule) =>
-  rule.days.length === 7
-    ? "Every day"
-    : rule.days.map((d) => weekdays[d]).join(", ");
-
 // Backups and preview storage are untrusted inputs; keep their contract aligned with Rust.
 export function validateHabits(input: unknown): HabitData {
   const fail = (): never => {

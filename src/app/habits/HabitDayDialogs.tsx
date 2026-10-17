@@ -11,10 +11,10 @@ import { Stepper } from "../ui/form";
 import { Dialog } from "../ui/layout";
 import { useSubmit } from "../ui/useSubmit";
 import { clearDay, logDay, pauseHabit } from "./commands";
-import { hkey, hrec, hskip, hval, measured } from "./selectors";
+import { habitOn, hkey, hrec, hskip, hval, measured } from "./selectors";
 
 export function HabitDayDialog({
-  hb,
+  hb: current,
   d,
   skip,
 }: {
@@ -22,6 +22,7 @@ export function HabitDayDialog({
   d: string;
   skip?: boolean;
 }) {
+  const hb = habitOn(current, d);
   const k = hkey(hb.id, d);
   const [mode, setMode] = useState<"log" | "skip">(
     skip || hskip(hb, d) != null ? "skip" : "log",

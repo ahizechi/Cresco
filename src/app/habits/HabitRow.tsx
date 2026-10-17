@@ -1,5 +1,5 @@
-// One habit's check-in row and its week of dots, shared by Home and Habits.
-import { DOW, TODAY, addDays, dmed, dow } from "../core/dates";
+// A check-in row using the rule that applied on the selected day.
+import { TODAY } from "../core/dates";
 import { cx } from "../core/format";
 import { apply } from "../core/commands";
 import { S, openDialog } from "../core/state";
@@ -8,10 +8,9 @@ import { Bar, Check, I, Tile } from "../ui/controls";
 import { RowMenu } from "../ui/layout";
 import { clearDay, setValue } from "./commands";
 import {
-  dayStatus,
+  habitOn,
   hkey,
   hrec,
-  hsched,
   hskip,
   hval,
   streak,
@@ -21,7 +20,7 @@ import {
 export const setHabit = (hb: Habit, day: string, value: number) =>
   void apply(
     setValue(hb, day, value),
-    value >= hb.target ? "Habit completed" : "Progress saved",
+    value >= habitOn(hb, day).target ? "Habit completed" : "Progress saved",
     { undo: true },
   );
 
@@ -52,7 +51,7 @@ export function habitMenu(hb: Habit, day: string): MenuItem[] {
 }
 
 export function HabitRow({
-  hb,
+  hb: current,
   date = TODAY,
   compact,
 }: {
@@ -60,6 +59,7 @@ export function HabitRow({
   date?: string;
   compact?: boolean;
 }) {
+  const hb = habitOn(current, date);
   const v = hval(hb.id, date);
   const done = v >= hb.target;
   const counted = hb.kind === "count" || (hb.kind == null && hb.target > 1);
@@ -134,35 +134,6 @@ export function HabitRow({
           <RowMenu label={"More for " + hb.name} items={habitMenu(hb, date)} />
         )}
       </div>
-    </div>
-  );
-}
-
-export function WeekDots({ hb, mon }: { hb: Habit; mon: string }) {
-  return (
-    <div className={cx("week-dots", "tone-" + hb.tone)}>
-      {Array.from({ length: 7 }, (_, i) => {
-        const d = addDays(mon, i);
-        const v = hval(hb.id, d);
-        const level = !hsched(hb, d)
-          ? "off"
-          : d > TODAY
-            ? ""
-            : v >= hb.target
-              ? "on"
-              : v > 0
-                ? "part"
-                : "";
-        return (
-          <span
-            key={d}
-            className={cx("wd tone", level, d === TODAY && "today")}
-            title={dmed(d) + ": " + dayStatus(hb, d)[0]}
-          >
-            {DOW[dow(d)][0]}
-          </span>
-        );
-      })}
     </div>
   );
 }

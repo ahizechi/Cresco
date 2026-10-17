@@ -3,30 +3,27 @@ import { TODAY, addDays, dmed, dow, mondayOf } from "../core/dates";
 import { num } from "../core/format";
 import { S } from "../core/state";
 import type { HabitRow } from "../core/view";
+import { dayNumber, ruleOn, timezones } from "../../features/habits/model";
 
 export const TODS = ["Morning", "Afternoon", "Evening", "Anytime"] as const;
 
-export const TZS = [
-  "Europe/London",
-  "Europe/Dublin",
-  "Europe/Lisbon",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "Europe/Madrid",
-  "Europe/Rome",
-  "Europe/Athens",
-  "Europe/Istanbul",
-  "Asia/Dubai",
-  "Asia/Kolkata",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Australia/Sydney",
-  "Pacific/Auckland",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-];
+export const TZS = timezones;
+
+/** Project the rule for a selected day; edits still target the original habit ID. */
+export function habitOn(hb: HabitRow, day: string): HabitRow {
+  if (!hb.rules) return hb;
+  const rule = ruleOn({ rules: hb.rules }, day);
+  if (!rule) return { ...hb, days: [], status: "archived" };
+  return {
+    ...hb,
+    days: rule.days.map((d) => (d + 1) % 7),
+    kind: rule.kind,
+    target: rule.target,
+    unit: rule.unit || null,
+    step: rule.kind === "check" ? 1 : Math.min(5, rule.target),
+    status: !rule.enabled ? "archived" : inPause(hb, day) ? "paused" : "active",
+  };
+}
 
 export const hkey = (id: string, day: string) => id + ":" + day;
 export const hval = (id: string, day: string) => S.hlog[hkey(id, day)] || 0;
@@ -40,33 +37,39 @@ export const inPause = (hb: HabitRow, day: string) =>
   (hb.pauses || []).some((p) => day >= p.from && (!p.until || day <= p.until));
 
 /** Scheduled on a day: started, on a repeat day, and not paused unless logged. */
-export const hsched = (hb: HabitRow, day: string) =>
-  day >= hb.created &&
-  hb.days.includes(dow(day)) &&
-  (!inPause(hb, day) || hrec(hb, day));
+export function hsched(hb: HabitRow, day: string) {
+  if (hb.rules) {
+    const rule = ruleOn({ rules: hb.rules }, day);
+    return (
+      !!rule &&
+      (hrec(hb, day) ||
+        (rule.enabled &&
+          rule.days.includes(dayNumber(day)) &&
+          !inPause(hb, day)))
+    );
+  }
+  return (
+    day >= hb.created &&
+    hb.days.includes(dow(day)) &&
+    (!inPause(hb, day) || hrec(hb, day))
+  );
+}
 
-export const hdone = (hb: HabitRow, day: string) =>
-  hval(hb.id, day) >= hb.target;
+export const hdone = (hb: HabitRow, day: string) => {
+  const target = hb.rules
+    ? ruleOn({ rules: hb.rules }, day)?.target
+    : hb.target;
+  return target !== undefined && hval(hb.id, day) >= target;
+};
 
 export const measured = (hb: HabitRow) =>
   hb.kind === "count" || (hb.kind == null && !!hb.unit);
 
 export const liveHabits = () => S.habits.filter((x) => x.status !== "archived");
-export const activeHabits = () => S.habits.filter((x) => x.status === "active");
-
 export const totalDone = (hb: HabitRow) =>
   Object.keys(S.hlog).filter(
-    (k) => k.startsWith(hb.id + ":") && S.hlog[k] >= hb.target,
+    (k) => k.startsWith(hb.id + ":") && hdone(hb, k.slice(hb.id.length + 1)),
   ).length;
-
-const weekDays = (mon: string) =>
-  Array.from({ length: 7 }, (_, i) => addDays(mon, i)).filter(
-    (d) => d <= TODAY,
-  );
-export const weekDone = (hb: HabitRow, mon: string) =>
-  weekDays(mon).filter((d) => hdone(hb, d)).length;
-export const weekDue = (hb: HabitRow, mon: string) =>
-  weekDays(mon).filter((d) => hsched(hb, d)).length;
 
 export const unitText = (hb: HabitRow, v: number) =>
   measured(hb)
@@ -118,6 +121,7 @@ export function dayStatus(hb: HabitRow, day: string): [string, DayLevel] {
   if (!hsched(hb, day))
     return [inPause(hb, day) ? "Paused" : "Not scheduled", "off"];
   if (hskip(hb, day) != null) return ["Skipped", "skip"];
+  hb = habitOn(hb, day);
   const v = hval(hb.id, day);
   if (v >= hb.target) return [measured(hb) ? unitText(hb, v) : "Done", "l3"];
   if (v > 0) return [unitText(hb, v), "l1"];
@@ -159,8 +163,7 @@ export interface HeatCell {
 export function history(win: number, hid: string) {
   const end = addDays(TODAY, -1),
     start = addDays(TODAY, -win);
-  const pool =
-    hid === "all" ? liveHabits() : S.habits.filter((x) => x.id === hid);
+  const pool = hid === "all" ? S.habits : S.habits.filter((x) => x.id === hid);
   const one = hid !== "all" ? (pool[0] ?? null) : null;
   let due = 0,
     done = 0,
@@ -182,7 +185,7 @@ export function history(win: number, hid: string) {
       : one
         ? hskip(one, d) != null
           ? 0
-          : Math.min(1, hval(one.id, d) / one.target)
+          : Math.min(1, hval(one.id, d) / habitOn(one, d).target)
         : b / a;
   }
   const best = pool
@@ -226,7 +229,7 @@ export function history(win: number, hid: string) {
 
 /** Live habits scheduled on a day. */
 export const dayHabits = (day: string) =>
-  liveHabits().filter((x) => hsched(x, day));
+  S.habits.filter((x) => hsched(x, day)).map((x) => habitOn(x, day));
 
 /** Share of a day's scheduled habits done, or null when none were due. */
 export function dayFraction(day: string) {

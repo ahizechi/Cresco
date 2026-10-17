@@ -25,6 +25,7 @@ import {
   hsched,
   hskip,
   history,
+  habitOn,
   streak,
   bestStreak,
   type HeatCell,
@@ -147,7 +148,9 @@ export function HabitHistory() {
     win,
     hid,
   );
-  const selHabits = pool.filter((x) => hsched(x, sel) || hrec(x, sel));
+  const selHabits = pool
+    .filter((x) => hsched(x, sel) || hrec(x, sel))
+    .map((x) => habitOn(x, sel));
   const tone = one ? one.tone : "green";
   return (
     <div className="view">
