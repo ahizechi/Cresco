@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Use the new C artwork for the application, browser, installer and uninstaller icons.
+
+### Fixed
+
+- Keep historical habit targets, schedules and archived check-ins visible after edits.
+- Offer only supported habit time zones in Settings.
+- Discard an unfinished CSV read when the selected import account changes.
+
 ## 0.1.4
 
 - Give the project page a clearer introduction to habits, money tracking, privacy and getting started.
