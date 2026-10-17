@@ -73,7 +73,7 @@ export default function App() {
     <div className="app cresco-app">
       <aside className="sidebar">
         <div className="cresco-brand">
-          <img src="/mark.svg" alt="" width="34" height="34" />
+          <img src="/mark.png" alt="" width="34" height="34" />
           <span>Cresco</span>
         </div>
         <nav aria-label="Main navigation">

@@ -59,6 +59,8 @@
     "windows": {
       "allowDowngrades": false,
       "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
         "installMode": "currentUser",
         "displayLanguageSelector": false
       }
