@@ -285,4 +285,128 @@ mod update_tests {
         assert_eq!(state.finance.load().unwrap(), saved);
         fs::remove_dir_all(state.directory).unwrap();
     }
+
+    #[test]
+    fn existing_records_survive_update_restart_save_and_backup_restore() {
+        let original: Value = serde_json::from_str(include_str!(
+            "../../tests/fixtures/contracts/upgrade-0.1.4.json"
+        ))
+        .unwrap();
+        let state = fixture();
+        let stores = [
+            ("finance.dpapi", "finance"),
+            ("habits.dpapi", "habits"),
+            ("routines.dpapi", "routines"),
+        ];
+        for (file, section) in stores {
+            private_store::write_private(
+                &state.directory.join(file),
+                &serde_json::to_vec(&original[section]).unwrap(),
+            )
+            .unwrap();
+        }
+        let bytes: Vec<_> = stores
+            .iter()
+            .map(|(file, _)| fs::read(state.directory.join(file)).unwrap())
+            .collect();
+        assert_eq!(state.finance.load().unwrap(), original["finance"]);
+        assert_eq!(state.habits.load().unwrap(), original["habits"]);
+        assert_eq!(state.routines.load().unwrap(), original["routines"]);
+        prepare_data_update(&state).unwrap();
+        assert!(gate(&state).is_err());
+        let backup = fs::read_dir(state.directory.join("update-backups"))
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
+        let restored = fixture();
+        for ((file, _), expected) in stores.iter().zip(&bytes) {
+            assert_eq!(&fs::read(state.directory.join(file)).unwrap(), expected);
+            assert_eq!(&fs::read(backup.join(file)).unwrap(), expected);
+            fs::copy(backup.join(file), restored.directory.join(file)).unwrap();
+        }
+        assert_eq!(restored.finance.load().unwrap(), original["finance"]);
+        assert_eq!(restored.habits.load().unwrap(), original["habits"]);
+        assert_eq!(restored.routines.load().unwrap(), original["routines"]);
+
+        // New store instances model the updated application's first load.
+        let restarted = habits::Store::new(state.directory.clone());
+        let mut changed = restarted.load().unwrap();
+        changed["habits"][0]["description"] = serde_json::json!("Updated description");
+        let saved = restarted.save(changed.clone(), false).unwrap();
+        changed["revision"] = serde_json::json!(24);
+        assert_eq!(saved, changed);
+        assert_eq!(saved["entries"], original["habits"]["entries"]);
+        assert_eq!(
+            saved["habits"][0]["rules"],
+            original["habits"]["habits"][0]["rules"]
+        );
+        assert_eq!(state.finance.load().unwrap(), original["finance"]);
+        assert_eq!(state.routines.load().unwrap(), original["routines"]);
+        assert_eq!(
+            fs::read(state.directory.join("habits.previous.dpapi")).unwrap(),
+            bytes[1]
+        );
+        let ledger = finance::Store::new(state.directory.clone());
+        let mut edited_finance = ledger.load().unwrap();
+        edited_finance["transactions"][0]["note"] = serde_json::json!("Updated purchase note");
+        let saved_finance = ledger.save(edited_finance.clone()).unwrap();
+        edited_finance["revision"] = serde_json::json!(18);
+        assert_eq!(saved_finance, edited_finance);
+        assert_eq!(state.habits.load().unwrap(), saved);
+        assert_eq!(state.routines.load().unwrap(), original["routines"]);
+        assert_eq!(
+            fs::read(state.directory.join("finance.previous.dpapi")).unwrap(),
+            bytes[0]
+        );
+        let timers = routines::Store::new(state.directory.clone());
+        let mut edited_routines = original["routines"]["data"].clone();
+        edited_routines["routines"][0]["title"] = serde_json::json!("Updated routine title");
+        assert_eq!(timers.save(edited_routines.clone(), 9, false).unwrap(), 10);
+        assert_eq!(
+            timers.load().unwrap(),
+            serde_json::json!({"revision":10,"data":edited_routines})
+        );
+        assert_eq!(state.finance.load().unwrap(), saved_finance);
+        assert_eq!(state.habits.load().unwrap(), saved);
+        assert_eq!(
+            fs::read(state.directory.join("routines.previous.dpapi")).unwrap(),
+            bytes[2]
+        );
+        for ((file, _), expected) in stores.iter().zip(&bytes) {
+            assert_eq!(&fs::read(backup.join(file)).unwrap(), expected);
+        }
+        fs::remove_dir_all(restored.directory).unwrap();
+        fs::remove_dir_all(state.directory).unwrap();
+    }
+
+    #[test]
+    fn corruption_in_any_store_aborts_update_without_replacing_records() {
+        for corrupt in ["finance.dpapi", "habits.dpapi", "routines.dpapi"] {
+            let state = fixture();
+            state.finance.save(state.finance.load().unwrap()).unwrap();
+            state
+                .habits
+                .save(state.habits.load().unwrap(), false)
+                .unwrap();
+            state
+                .routines
+                .save(serde_json::json!({"routines":[]}), 0, false)
+                .unwrap();
+            fs::write(state.directory.join(corrupt), b"synthetic corrupt file").unwrap();
+            let files = ["finance.dpapi", "habits.dpapi", "routines.dpapi"];
+            let before: Vec<_> = files
+                .iter()
+                .map(|file| fs::read(state.directory.join(file)).unwrap())
+                .collect();
+            assert!(prepare_data_update(&state).is_err());
+            assert!(gate(&state).is_ok());
+            for (file, bytes) in files.iter().zip(before) {
+                assert_eq!(fs::read(state.directory.join(file)).unwrap(), bytes);
+            }
+            assert!(!state.directory.join("update-backups").exists());
+            fs::remove_dir_all(state.directory).unwrap();
+        }
+    }
 }
